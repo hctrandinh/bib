@@ -1,3 +1,4 @@
+//To use: node server/sandbox.js https://guide.michelin.com/fr/fr/restaurants/bib-gourmand/page/
 const axios = require('axios');
 const cheerio = require('cheerio');
 
@@ -6,13 +7,24 @@ const cheerio = require('cheerio');
  * @param  {String} data - html response
  * @return {Object} restaurant
  */
+
+var links = [];
+var res = [];
 const parse = data => {
   const $ = cheerio.load(data);
-  const name = $('.section-main h2.restaurant-details__heading--title').text();
-  const experience = $('#experience-section > ul > li:nth-child(2)').text();
+  //let firstElem = $('.restaurant-details__heading--title').get()[0]
+  
+  $('.card__menu-image a').each((i, element) =>
+  {
+    var item = $(element).attr('aria-label');
+    res.push(item.substring(5));
+  });
+  //const name = $('.card__menu-image a').attr('aria-label');
+  //const experience = $('#experience-section > ul > li:nth-child(2)').text();
 
-  return {name, experience};
+  return {res};
 };
+
 
 /**
  * Scrape a given restaurant url
