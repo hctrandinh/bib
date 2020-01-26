@@ -4,8 +4,9 @@ const maitre = require('./maitre');
 
 var restaurants = null;
 var restaurants2 = null;
+var searchLink = 'https://guide.michelin.com/fr/fr/restaurants/bib-gourmand/page/'
 
-async function sandbox (searchLink = 'https://guide.michelin.com/fr/fr/centre-val-de-loire/veuves/restaurant/l-auberge-de-la-croix-blanche') {
+async function sandbox (searchLink) {
   try {
     //console.log(`🕵️‍♀️  browsing ${searchLink} source`);
     restaurants = await michelin.scrapeRestaurant(searchLink);
@@ -29,7 +30,8 @@ async function sandbox2 (page_nb) {
   }
 }
 
-const [,, searchLink] = process.argv;
+//const [,, searchLink] = process.argv;
+
 
 for(var index = 1; index < 31; index++)
 {
@@ -37,15 +39,30 @@ for(var index = 1; index < 31; index++)
   sandbox(url);
 }
 
+
 var delayInMilliseconds = 10000; //10 seconds.
 
 console.log("Waiting 10 seconds to get all results from michelin.")
 
 setTimeout(function() {
   console.log(restaurants);
+  require('fs').writeFile(
+
+    'server/bib_res.txt',
+
+    JSON.stringify(restaurants["res"]),
+
+    function (err) {
+        if (err) {
+            console.error('Crap happens');
+        }
+    }
+);
 }, delayInMilliseconds);
 
+
 //_______________________________________________
+
 
 for (var nb_page = 1; nb_page < 150; nb_page++)
 {
@@ -57,6 +74,18 @@ delayInMilliseconds = 20000; //20 seconds.
 console.log("Waiting 20 seconds to get all results from maitre restaurant.")
 
 setTimeout(function() {
-  console.log(restaurants2);
+  console.log(restaurants2["res"]);
+  require('fs').writeFile(
+
+    'server/maitre_res.txt',
+
+    JSON.stringify(restaurants2["res"]),
+
+    function (err) {
+        if (err) {
+            console.error('Crap happens');
+        }
+    }
+);
 }, delayInMilliseconds);
 
