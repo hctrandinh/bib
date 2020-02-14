@@ -32,7 +32,6 @@ async function sandbox2 (page_nb) {
 
 //const [,, searchLink] = process.argv;
 
-
 for(var index = 1; index < 31; index++)
 {
   var url = searchLink + `${index}`;
@@ -48,7 +47,7 @@ setTimeout(function() {
   console.log(restaurants);
   require('fs').writeFile(
 
-    'server/bib_res.txt',
+    'server/bib_res.json',
 
     JSON.stringify(restaurants["res"]),
 
@@ -59,7 +58,6 @@ setTimeout(function() {
     }
 );
 }, delayInMilliseconds);
-
 
 //_______________________________________________
 
@@ -77,7 +75,7 @@ setTimeout(function() {
   console.log(restaurants2["res"]);
   require('fs').writeFile(
 
-    'server/maitre_res.txt',
+    'server/maitre_res.json',
 
     JSON.stringify(restaurants2["res"]),
 
@@ -88,4 +86,5 @@ setTimeout(function() {
     }
 );
 }, delayInMilliseconds);
+
 

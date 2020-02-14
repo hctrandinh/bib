@@ -13,12 +13,27 @@ var res = [];
 const parse = data => {
   const $ = cheerio.load(data);
   //let firstElem = $('.restaurant-details__heading--title').get()[0]
-  
+  var item = [];
+  var item2 = [];
+  var item3 = [];
+
   $('.card__menu-image a').each((i, element) =>
   {
-    var item = $(element).attr('aria-label');
-    res.push(item.substring(5));
+    item.push($(element).attr('aria-label').substring(5));
   });
+  $('.card__menu-footer--price').each((i, element) =>
+  {
+    item2.push($(element).text().trim());
+  });
+  $('.card__menu-footer--location').each((i, element) =>
+  {
+    item3.push($(element).text().trim());
+  });
+  for(var index = 0; index < item.length; index++)
+  {
+    res.push({'Name':item[index], 'Cuisine':item2[index], 'Lieu':item3[index]})
+  }
+
   //const name = $('.card__menu-image a').attr('aria-label');
   //const experience = $('#experience-section > ul > li:nth-child(2)').text();
 

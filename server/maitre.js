@@ -1,5 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+var iconv = require('iconv-lite');
 
 
 var res = [];
@@ -19,12 +20,27 @@ async function get_restaurants_by_page(page_nb)
 const parse = data => 
 {
     //console.log("Here is the data to parse:\n" + data);
-    const $ = cheerio.load(data);
+    var processed_data = iconv.decode(data,'windows-1252');
+
+    var item = [];
+    var item2 = [];
+
+    const $ = cheerio.load(processed_data);
+    
     $('.single_libel a').each((i, element) =>
     {
-        var item = $(element).text();
-        res.push(item);
+        item.push($(element).text().trim().replace(/(\B)[^ ]*/g,match =>(match.toLowerCase())).replace(/^[^ ]/g,match=>(match.toUpperCase())));
     });
+
+    $('.fa-map-marker').each((i, element) =>
+    {
+        item2.push($(element).find('display').text().trim().replace(/(\B)[^ ]*/g,match =>(match.toLowerCase())).replace(/^[^ ]/g,match=>(match.toUpperCase())));
+    });
+
+    for(var index = 0; index < item.length; index++)
+    {
+        res.push({'Name':item[index]})
+    }
     //console.log("Here is the result of parsing:\n" + res);
     return {res};
 };
