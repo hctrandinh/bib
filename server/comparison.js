@@ -20,7 +20,7 @@ for(var index = 0; index < json.length; index++)
         //Put to lower case + erasing words between (). Then check if includes words...
         if(json2[index2]['Name'].toLowerCase().replace(/ *\([^)]*\) */g, "") == (json[index]['Name'].toLowerCase()))
         {
-            liste.push(json[index]['Name']);
+            liste.push({'Name':json[index]['Name']});
         }
     }
 }
@@ -28,9 +28,22 @@ for(var index = 0; index < json.length; index++)
 var count = 1;
 
 liste.forEach(element => {
-    console.log(count + ": " + element);
+    console.log(count + ": " + element['Name']);
     count++;
 });
+
+require('fs').writeFile(
+
+    'server/comparison_res.json',
+
+    JSON.stringify(liste),
+
+    function (err) {
+        if (err) {
+            console.error('Crap happens');
+        }
+    }
+);
 
 //Old version
 /*
