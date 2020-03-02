@@ -11,7 +11,7 @@ for (var index = 0; index < json.length; index++) {
       json2[index2]["Name"].toLowerCase().replace(/ *\([^)]*\) */g, "") ==
       json[index]["Name"].toLowerCase()
     ) {
-      liste.push({ Name: json[index]["Name"] });
+      liste.push({ Name: json[index]["Name"], Address: json[index]["Place"] });
     }
   }
 }
