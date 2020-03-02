@@ -1,6 +1,36 @@
 # BIB
 
-> Maître Restaurateur x Bib Gourmand
+To use:
+1)Place yourself in bib folder.
+2)node server/sandbox.js
+This gets all the restaurants from both websites.
+3)node server/comparison.js
+This returns the intersection between both results.
+
+React:
+1)Go to ./react-web/react_bootstrap
+2)Yarn start
+Notice: I generated the localisation (longitude/latitude) of all my scrapping results with BingMap.js script and copy/pasted the raw data inside my distance.js file as I had some issues with manipulating it from another file in coordination with react. So only your localisation is fetched from microsoft map api each time you make a request and also the distance between your city and all raw coordinates. Results are then compared and the page displays the best result.
+
+React pages:
+
+Home page:
+![img1](./img/01.png)
+
+Bib restaurants:
+![img2](./img/02.png)
+
+Maitre restaurants:
+![img3](./img/03.png)
+
+Filtering with both:
+![img4](./img/04.png)
+
+Nearest restaurant page:
+![img5](./img/05.png)
+
+Example with your localization at dijon:
+![img6](./img/06.png)
 
 ![bib](./img/bib.jpg)
 
