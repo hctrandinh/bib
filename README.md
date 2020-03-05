@@ -1,11 +1,257 @@
 # BIB
 
-To use:
-1)Place yourself in bib folder.
-2)node server/sandbox.js
-This gets all the restaurants from both websites.
-3)node server/comparison.js
-This returns the intersection between both results.
+The project is divided into two parts:
+
+The first one is the data scrapping part and we will quickly show you how to use it. We scrap data for restaurants from the guide michelin and maitre restaurant websites. We thus have two different files which gives the basic functions to get our datas.
+
+Here are both codes:
+
+michelin.js
+
+```javascript
+const axios = require("axios");
+const cheerio = require("cheerio");
+
+//Results of scraping is kept here:
+var res = [];
+
+const parse = data => {
+  const $ = cheerio.load(data);
+
+  //Names
+  var item = [];
+  //Cuisines
+  var item2 = [];
+  //Places
+  var item3 = [];
+  //Used to check if something has been found.
+  var check = "";
+
+  //Scrap names
+  $(".card__menu-image a").each((i, element) => {
+    item.push(
+      $(element)
+        .attr("aria-label")
+        .substring(5)
+    );
+    check = $(element)
+      .attr("aria-label")
+      .substring(5);
+  });
+  //Scrap cuisines
+  $(".card__menu-footer--price").each((i, element) => {
+    item2.push(
+      $(element)
+        .text()
+        .trim()
+    );
+  });
+  //Scrap places
+  $(".card__menu-footer--location").each((i, element) => {
+    item3.push(
+      $(element)
+        .text()
+        .trim()
+    );
+  });
+  //Construct our JSON result
+  for (var index = 0; index < item.length; index++) {
+    res.push({ Name: item[index], Cuisine: item2[index], Place: item3[index] });
+  }
+
+  //return { res };
+
+  return check;
+};
+
+module.exports.scrapeRestaurant = async url => {
+  var info = "";
+  var page_nb = 1;
+  do {
+    console.log("Searching bib page: " + page_nb);
+    url = "https://guide.michelin.com/fr/fr/restaurants/bib-gourmand/page/";
+    url = url + `${page_nb}`;
+    const response = await axios(url);
+    const { data, status } = response;
+    if (status >= 200 && status < 300) {
+      info = parse(data);
+    }
+    page_nb = page_nb + 1;
+  } while (info != "");
+
+  if (res != null) {
+    return { res };
+  }
+
+  console.error(status);
+
+  return null;
+};
+
+module.exports.get = () => {
+  return [];
+};
+```
+
+And thus, michelin.js gives you a way to returns a result with this form (sample):
+
+```json
+[
+  { "Name": "Le Rousseau", "Cuisine": "Actuelle", "Place": "Grenoble" },
+  {
+    "Name": "Les 3 Faisans",
+    "Cuisine": "Cuisine moderne",
+    "Place": "Saint-Savin"
+  },
+  {
+    "Name": "La Table du Sommelier",
+    "Cuisine": "Cuisine moderne",
+    "Place": "Albi"
+  },
+  {
+    "Name": "Au Bouchon Breton",
+    "Cuisine": "Cuisine traditionnelle",
+    "Place": "Dinard"
+  }
+ ]
+```
+
+maitre.js
+
+```javascript
+const axios = require("axios");
+const cheerio = require("cheerio");
+//To correct most of String conversions.
+var iconv = require("iconv-lite");
+
+var res = [];
+
+const parse = data => {
+  var processed_data = iconv.decode(data, "windows-1252");
+
+  var item = [];
+  var item2 = [];
+  var check = "";
+
+  const $ = cheerio.load(processed_data);
+
+  $(".single_libel a").each((i, element) => {
+    item.push(
+      $(element)
+        .text()
+        .trim()
+        .replace(/(\B)[^ ]*/g, match => match.toLowerCase())
+        .replace(/^[^ ]/g, match => match.toUpperCase())
+    );
+    check = $(element)
+      .text()
+      .trim()
+      .replace(/(\B)[^ ]*/g, match => match.toLowerCase())
+      .replace(/^[^ ]/g, match => match.toUpperCase());
+  });
+
+  /*
+    var doc = new dom().parseFromString(data)
+    var title = xpath.select('//*[@id="zoneAnnuaire_layout"]/div[3]/div[2]/div[3]/div[1]/div[2]/div[2]/div/div[1]/div', doc).toString()
+    console.log(title)
+    */
+
+  for (var index = 0; index < item.length; index++) {
+    res.push({ Name: item[index] });
+  }
+
+  for (var index2 = 0; index2 < item2.length; index2++) {
+    res.push({ Adresse: item2[index2] });
+  }
+  //return { res };
+  return check;
+};
+
+async function get_restaurants_by_page(page_nb) {
+  var string_nb = String(page_nb);
+  const result = await axios({
+    method: "post",
+    url: "https://www.maitresrestaurateurs.fr/annuaire/ajax/loadresult#",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    data:
+      "page=" +
+      string_nb +
+      "&sort=undefined&request_id=ec830a0fb20e71279f65cd4fad4cb137&annuaire_mode=standard"
+  });
+  return result;
+}
+
+module.exports.scrapeRestaurant = async url => {
+  var info = "";
+  var page_nb = 1;
+  do {
+    console.log("Searching maitre page: " + page_nb);
+    const response = await get_restaurants_by_page(page_nb);
+    const { data, status } = response;
+    if (status >= 200 && status < 300) {
+      info = parse(data);
+    }
+    page_nb = page_nb + 1;
+  } while (info != "");
+
+  if (res != null) {
+    return { res };
+  }
+
+  console.error(status);
+
+  return null;
+};
+
+/**
+ * Get all France located Maitre restaurants
+ * @return {Array} restaurants
+ */
+module.exports.get = () => {
+  return [];
+};
+
+```
+
+maitre.js works similarly but instead of a get, it uses a post request. Both are built so that when parsing is done, it allows the script to know when a parsing result is null thus stopping the scrapping if reaching an empty page. This allows us to avoid entering raw values to check website pages.
+
+Note: we need here to do a little character conversion to avoid ASCII like characters, using iconv-lite library on top of our parsing.
+
+Here is a sample result with just the names needed because when we then compare the result of both searching, all we need was already scrapped when getting bib restaurants:
+
+```json
+[
+  { "Name": "Le Temps D'M (mathias )" },
+  { "Name": "Brasserie La Choulette (alain Dhaussy)" },
+  {
+    "Name": "Scev Lequart Et Fils  Champagne Laurent Lequart (laurent Lequart)"
+  },
+  { "Name": "Domaine de la Jobeline (pierre Maillet)" },
+  { "Name": "Les Pyrenees (patrick Abadie)" }
+]
+```
+Comparison is done using the comparison.js script and it returns matching results between both .json files. It then saves in a .json file our results.
+
+How to use the scraping part:
+
+1)
+
+Place yourself inside your bib folder.
+
+2)
+Use the following command to scrap datas from both websites:
+
+```bash
+$ node ./server/sandbox.js
+```
+
+3)
+And finally use the following command to do the comparison.
+
+```bash
+$ node ./server/comparison.js
+```
+
 
 React:
 1)Go to ./react-web/react_bootstrap
@@ -31,280 +277,3 @@ Nearest restaurant page:
 
 Example with your localization at dijon:
 ![img6](./img/06.png)
-
-![bib](./img/bib.jpg)
-
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**
-
-- [🐣 Introduction](#-introduction)
-- [🎯 Objectives](#-objectives)
-- [🏃‍♀️ Steps to do](#%E2%80%8D-steps-to-do)
-  - [Stack](#stack)
-- [👩‍💻 Just tell me what to do](#%E2%80%8D-just-tell-me-what-to-do)
-- [🏃‍♀️ Example of Steps to do](#%E2%80%8D-example-of-steps-to-do)
-  - [Step 1. No code: Investigation first](#step-1-no-code-investigation-first)
-    - [Michelin Restaurants](#michelin-restaurants)
-    - [Maître-Restaurateur Restaurants](#ma%C3%AEtre-restaurateur-restaurants)
-    - [The web application](#the-web-application)
-  - [Step 2. Server-side with Node.js](#step-2-server-side-with-nodejs)
-    - [require('michelin')](#requiremichelin)
-    - [require('maitre')](#requiremaitre)
-    - [require('bib')](#requirebib)
-  - [Step 3. Client-side with React](#step-3-client-side-with-react)
-- [📦 Suggested node modules](#-suggested-node-modules)
-- [🍽 Scraping Example](#%F0%9F%8D%BD-scraping-example)
-- [Don't forget](#dont-forget)
-- [Licence](#licence)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## 🐣 Introduction
-
-## 🎯 Objectives
-
-**List `Maître Restaurateur` with `Bib Gourmand` distinction**
-
-## 🏃‍♀️ Steps to do
-
-Create a connection between [maitresrestaurateurs.fr](https://www.maitresrestaurateurs.fr/), [guide.michelin.com/fr/fr/restaurants](https://guide.michelin.com/fr/fr/restaurants) and the end-user.
-
-### Stack
-
-```
-Node.js + React + ES6
-+ CSS Design Framework (bootstrap, foundation, mdl...)
-[+ docker + redis ...]
-```
-
-## 👩‍💻 Just tell me what to do
-
-1. Fork the project via `github`
-
-![fork](./img/fork.png)
-
-1. Clone your forked repository project `https://github.com/YOUR_USERNAME/bib`
-
-```sh
-❯ cd /path/to/workspace
-❯ git clone git@github.com:YOUR_USERNAME/bib.git
-```
-
-2. **[Do things](https://github.com/92bondstreet/bib#%EF%B8%8F-example-of-steps-to-do)**
-
-3. commit your different modifications:
-
-```sh
-❯ cd /path/to/workspace/bib
-❯ git add -A && git commit -m "feat(michelin): get list of bib-gourmand restaurants"
-```
-
-([why following a commit message convention?](https://www.conventionalcommits.org)
-
-4. Don't forget to commit early, commit often and push often
-
-```sh
-❯ git push origin master
-```
-
-**Note**: if you catch an error about authentication, [add your ssh to your github profile](https://help.github.com/articles/connecting-to-github-with-ssh/).
-
-5. If you need some helps on git commands, read [git - the simple guide](http://rogerdudler.github.io/git-guide/)
-
-## 🏃‍♀️ Example of Steps to do
-
-### Step 1. No code: Investigation first
-
-#### Michelin Restaurants
-
-1. How it works https://guide.michelin.com/fr/fr/restaurants
-1. How can I filter by distinction `Bib Gourmand`?
-1. What are the given properties for a `Bib Gourmand` restaurant: name, address, town, website link... ?
-1. ...
-
-![michelin](./img/michelin.png)
-
-Some things to do:
-
-1. Browse the website
-1. Define the JSON object representation for a restaurant
-1. Check how that you can get list of `Bib Gourmand` distinction restaurants: web page itself, api etc.... (Inspect Network Activity - with [Chrome DevTools for instance](https://developers.google.com/web/tools/chrome-devtools/network) - on any browser)
-1. ...
-
-Example of Restaurant: https://guide.michelin.com/fr/fr/bourgogne-franche-comte/chagny/restaurant/pierre-jean
-
-#### Maître-Restaurateur Restaurants
-
-1. How it works https://www.maitresrestaurateurs.fr?
-1. How to get the list of Restaurants?
-1. How to identify the restaurants name?
-1. ...
-
-![maitre](./img/maitre.png)
-
-Some things to do:
-
-1. Browse the website
-1. Define the JSON object representation for a restaurant
-1. Check how that you can get list of restaurants  restaurants: web page itself, api etc.... (Inspect Network Activity - with [Chrome DevTools for instance](https://developers.google.com/web/tools/chrome-devtools/network) - on any browser)
-1. ...
-
-Example of Restaurant: https://www.maitresrestaurateurs.fr/profil/694
-
-
-#### The web application
-
-Some things to do:
-
-1. How to create a connection between `Maître Restaurateur` and the `Bib Gourmand`  restaurant?
-1. What could be useful features for the end-user?
-
-### Step 2. Server-side with Node.js
-
-#### require('michelin')
-
-Create a module called `michelin` that return the list of restaurant with Bib Gourmand distinction
-
-```js
-const michelin = require('michelin');
-
-const restaurants = michelin.get();
-
-restaurant.forEach(restaurant => {
-  console.log(restaurant.name);
-})
-```
-
-Some things to do:
-
-1. Scrape list of France located `Bib Gourmand` restaurants
-1. Store the list into JSON file (You can deep dive with a nosql database if you wish - like redis, mongodb...)
-1. Create a node module that returns the list
-
-#### require('maitre')
-
-Create a module called `maitre` that returns the list `Maître Restaurateur` restaurants
-
-```js
-const maitre = require('maitre');
-
-const restaurants = maitre.get();
-
-restaurants.forEach(restaurant => {
-  console.log(restaurant.name);
-})
-
-...
-```
-
-Some things to do:
-
-1. Scrape list of France located `Maitre Restaurateur` restaurants
-1. Store the list into JSON file (You can deep dive with a nosql database if you wish - like redis, mongodb...)
-1. Create a node module that returns the list
-
-#### require('bib')
-
-Create a module called `bib` that returns the list of `Maître Restaurateur` restaurants with `Bib Gourmand` distinction.
-
-```js
-const bib = require('bib');
-
-const restaurants = bib.get();
-
-restaurants.forEach(restaurant => {
-  console.log(`${restaurant.name} - ${restaurant.address}`);
-})
-
-...
-```
-
-### Step 3. Client-side with React
-
-[Minimum Valuable Product](https://medium.com/swlh/the-mvp-is-dead-long-life-to-the-map-minimum-awesome-product-404df90fef7f) to do is simple as:
-
-1. **List France located `Maître Restaurateur` with `Bib Gourmand` distinction**
-
-Next features could be:
-
-2. Add filters:
-  * filtering by name
-  * sorting by distance
-
-3. Bonus:
-
-* Display on a map - like [OpenStreetMap](www.openstreetmap.org) - only `Maître Restaurateur` with `Bib Gourmand` distinction
-* List France located `Maître Restaurateur` with `stars` distinction
-
-
-## 📦 Suggested node modules
-
-* [axios](https://github.com/axios/axios) - Promise based HTTP client for the browser and node.js
-* [cheerio](https://github.com/cheeriojs/cheerio) - Fast, flexible, and lean implementation of core jQuery designed specifically for the server.
-* [nodemon](https://github.com/remy/nodemon) - Monitor for any changes in your node.js application and automatically restart the server - perfect for development
-
-## 🍽 Scraping Example
-
-[server/michelin.js](./server/michelin.js) contains a function to scrape a given Michelin restaurant url.
-
-To start the example, use the Makefile target or call with node cli:
-
-```sh
-❯ make sandbox-sever
-❯ ## node server/sandbox.js
-❯ ## ./node_modules/.bin/nodemon server/sandbox.js
-```
-
-
-```js
-const axios = require('axios');
-const cheerio = require('cheerio');
-
-/**
- * Parse webpage restaurant
- * @param  {String} data - html response
- * @return {Object} restaurant
- */
-const parse = data => {
-  const $ = cheerio.load(data);
-  const name = $('.section-main h2.restaurant-details__heading--title').text();
-  const experience = $('#experience-section > ul > li:nth-child(2)').text();
-
-  return {name, experience};
-};
-
-/**
- * Scrape a given restaurant url
- * @param  {String}  url
- * @return {Object} restaurant
- */
-module.exports.scrapeRestaurant = async url => {
-  const response = await axios(url);
-  const {data, status} = response;
-
-  if (status >= 200 && status < 300) {
-    return parse(data);
-  }
-
-  console.error(status);
-
-  return null;
-};
-
-/**
- * Get all France located Bib Gourmand restaurants
- * @return {Array} restaurants
- */
-module.exports.get = () => {
-  return [];
-};
-```
-
-## Don't forget
-
-**Focus on codebase and UX/UI**
-
-## Licence
-
-[Uncopyrighted](http://zenhabits.net/uncopyright/)
