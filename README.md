@@ -1,4 +1,4 @@
-# BIB
+# BIB X Maitre
 
 The project is divided into two parts:
 
